@@ -718,9 +718,10 @@ cv::Mat LocalOrientation::draw(const cv::Mat & img, const QString & id, double r
 }
 
 // ScaleSpaceSuperPixel --------------------------------------------------------------------
-ScaleSpaceSuperPixel::ScaleSpaceSuperPixel(const cv::Mat & img) {
+ScaleSpaceSuperPixel::ScaleSpaceSuperPixel(const cv::Mat & img, bool storeFeatures) {
 	mConfig = QSharedPointer<ScaleSpaceSPConfig>::create();
 	mSrcImg = img;
+	mStoreFeatures = storeFeatures;
 }
 
 bool ScaleSpaceSuperPixel::isEmpty() const {
@@ -760,6 +761,10 @@ bool ScaleSpaceSuperPixel::compute() {
 				mWarning << "could not compute super pixels for layer #" << idx;
 
 			PixelSet set = spm.getSuperPixels();
+			QVector<QSharedPointer<MserBlob>> mserBlobs;
+			if (mStoreFeatures) {
+				mserBlobs = spm.getMserBlobs();
+			}
 
 			// assign the pyramid level
 			for (auto p : set.pixels()) {
@@ -769,14 +774,30 @@ bool ScaleSpaceSuperPixel::compute() {
 				idCnt++;
 			}
 
+			if (mStoreFeatures) {
+				for (const auto& b : mserBlobs) {
+					b->setPyramidLevel(idx);
+					// id ?
+				}
+			}
+
 			if (idx > 0) {
 
 				// re-scale
 				double sf = std::pow(2, idx);
 				set.scale(sf);
+
+				if (mStoreFeatures) {
+					for (const auto& mserBlob : mserBlobs) {
+						mserBlob->scale(sf);
+					}
+				}
 			}
 
 			mSet += set;
+			if (mStoreFeatures) {
+				mMserBlobs.append(mserBlobs);
+			}
 		}
 
 		cv::resize(img, img, cv::Size(), 0.5, 0.5, CV_INTER_AREA);
@@ -801,6 +822,10 @@ PixelSet ScaleSpaceSuperPixel::superPixels() const {
 	return mSet;
 }
 
+QVector<QSharedPointer<MserBlob>> ScaleSpaceSuperPixel::mserBlobs() const {
+	return mMserBlobs;
+}
+
 cv::Mat ScaleSpaceSuperPixel::draw(const cv::Mat & img) const {
 	
 	// debug - remove
@@ -810,8 +835,29 @@ cv::Mat ScaleSpaceSuperPixel::draw(const cv::Mat & img) const {
 	p.setPen(ColorManager::blue());
 
 	for (auto px : mSet.pixels()) {
-		px->draw(p, 0.3, Pixel::DrawFlags() | /*Pixel::draw_id |*/ Pixel::draw_center | Pixel::draw_stats);
+		px->draw(p, 0.3, Pixel::DrawFlags() | /*Pixel::draw_id |*/ Pixel::draw_center | Pixel::draw_stats | Pixel::draw_ellipse);
 	}
+
+	return Image::qPixmap2Mat(pm);
+}
+
+cv::Mat ScaleSpaceSuperPixel::drawMserBlobs(const cv::Mat & img, const QColor & col) const {
+
+	// draw mser blobs
+	Timer dtf;
+	QPixmap pm = Image::mat2QPixmap(img);
+	QPainter p(&pm);
+	p.setPen(col);
+
+	for (auto b : mMserBlobs) {
+
+		if (!col.isValid())
+			p.setPen(ColorManager::randColor());
+
+		b->draw(p);
+	}
+
+	qDebug() << "drawing takes" << dtf;
 
 	return Image::qPixmap2Mat(pm);
 }

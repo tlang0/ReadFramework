@@ -39,7 +39,7 @@ void ThomasTest::test() {
 	//testXml();
 	testFeatureCollection();
 	testTraining();
-	//testClassification();
+	testClassification();
 }
 
 void ThomasTest::testXml() {
@@ -91,15 +91,25 @@ void ThomasTest::testFeatureCollection() {
 
 	// super pixels
 
-	SuperPixel sp(img);
-	if (!sp.compute()) {
-		qDebug() << "error during SuperPixel computation";
+	//SuperPixel sp(img);
+	//if (!sp.compute()) {
+	//	qDebug() << "error during SuperPixel computation";
+	//}
+
+	ScaleSpaceSuperPixel sssp(img, true);
+	if (!sssp.compute()) {
+		qDebug() << "error during ScaleSpaceSuperPixel computation";
 	}
 
-	cv::Mat imgOut = sp.drawMserBlobs(img);
-	QString imgPath = Utils::createFilePath(mConfig.outputPath(), "-sp");
+	//cv::Mat imgOut = sssp.draw(img);
+	//QString imgPath = Utils::createFilePath(mConfig.outputPath(), "-sssp");
+	//Image::save(imgOut, imgPath);
+	//qDebug() << "sssp debug image added" << imgPath;
+
+	cv::Mat imgOut = sssp.drawMserBlobs(img);
+	QString imgPath = Utils::createFilePath(mConfig.outputPath(), "-sssp");
 	Image::save(imgOut, imgPath);
-	qDebug() << "sp debug image added" << imgPath;
+	qDebug() << "sssp debug image added" << imgPath;
 
 	// collect features
 
@@ -107,7 +117,7 @@ void ThomasTest::testFeatureCollection() {
 	qInfo().noquote() << lm.toString();
 
 	// feed the label lookup
-	SuperPixelLabeler spl(sp.getMserBlobs(), Rect(img));
+	SuperPixelLabeler spl(sssp.mserBlobs(), Rect(img));
 	spl.setLabelManager(lm);
 	spl.setFilePath(mConfig.imagePath());	// parse filepath for gt
 
@@ -129,6 +139,7 @@ void ThomasTest::testFeatureCollection() {
 
 	SuperPixelFeature spf(img, spl.set());
 	spf.config()->setFeatureType(SuperPixelFeatureType::hog);
+	spf.config()->saveSettings();
 	if (!spf.compute())
 		qCritical() << "could not compute SuperPixel features!";
 
@@ -162,9 +173,9 @@ void ThomasTest::testClassification() {
 	QImage imgQt(mConfig.imagePath());
 	cv::Mat img = Image::qImage2Mat(imgQt);
 
-	SuperPixel sp(img);
-	if (!sp.compute()) {
-		qDebug() << "error during SuperPixel computation";
+	ScaleSpaceSuperPixel sssp(img);
+	if (!sssp.compute()) {
+		qDebug() << "error during ScaleSpaceSuperPixel computation";
 	}
 
 	auto model = SuperPixelModel::read(mConfig.classifierPath());
@@ -176,7 +187,7 @@ void ThomasTest::testClassification() {
 
 	// classify
 
-	SuperPixelClassifier spc(img, sp.pixelSet());
+	SuperPixelClassifier spc(img, sssp.superPixels());
 	spc.setModel(model);
 
 	if (!spc.compute())

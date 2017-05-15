@@ -1,6 +1,4 @@
 #include "SuperPixelTrainer.h"
-#include "SuperPixelTrainer.h"
-#include "SuperPixelTrainer.h"
 /*******************************************************************************************************
  ReadFramework is the basis for modules developed at CVL/TU Wien for the EU project READ. 
   
@@ -324,7 +322,7 @@ bool SuperPixelLabeler::checkInput() const {
 }
 
 PixelSet SuperPixelLabeler::labelBlobs(const cv::Mat & labelImg, const QVector<QSharedPointer<MserBlob> >& blobs) const {
-	
+
 	PixelSet set;
 
 	for (const QSharedPointer<MserBlob>& cb : blobs) {

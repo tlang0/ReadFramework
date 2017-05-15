@@ -173,7 +173,8 @@ bool SuperPixelClassifier::checkInput() const {
 }
 
 // SuperPixelFeatureConfig --------------------------------------------------------------------
-SuperPixelFeatureConfig::SuperPixelFeatureConfig() :  ModuleConfig("Super Pixel Feature") {
+SuperPixelFeatureConfig::SuperPixelFeatureConfig() 
+	: ModuleConfig("Super Pixel Feature"), mFeatureType(SuperPixelFeatureType::orb) {
 }
 
 QString SuperPixelFeatureConfig::toString() const{
@@ -189,7 +190,7 @@ SuperPixelFeatureType SuperPixelFeatureConfig::featureType() const {
 }
 
 void SuperPixelFeatureConfig::load(const QSettings & settings) {
-	QString featureTypeStr = settings.value("featureType").toString();
+	QString featureTypeStr = settings.value("featureType").toString().toLower();
 	if (featureTypeStr == "orb") {
 		mFeatureType = SuperPixelFeatureType::orb;
 	}
@@ -206,6 +207,7 @@ void SuperPixelFeatureConfig::save(QSettings & settings) const {
 	switch (mFeatureType) {
 	case SuperPixelFeatureType::orb: featureTypeStr = "orb"; break;
 	case SuperPixelFeatureType::hog: featureTypeStr = "hog"; break;
+	default: featureTypeStr = "orb";
 	}
 	settings.setValue("featureType", featureTypeStr);
 }
@@ -259,7 +261,6 @@ bool SuperPixelFeature::compute() {
 			locations.push_back(cv::Point((int)round(kp.pt.x), (int)round(kp.pt.y)));
 		}
 		hog.compute(cImg, descriptors, cv::Size(), cv::Size(), locations);
-		int descSize = (int)hog.getDescriptorSize();
 		mDescriptors = cv::Mat(descriptors, true);
 		mDescriptors = mDescriptors.reshape(0, (int)locations.size());
 	}

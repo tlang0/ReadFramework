@@ -153,7 +153,7 @@ protected:
 class DllCoreExport ScaleSpaceSuperPixel : public Module {
 
 public:
-	ScaleSpaceSuperPixel(const cv::Mat& img);
+	ScaleSpaceSuperPixel(const cv::Mat& img, bool storeFeatures = false);
 
 	bool isEmpty() const override;
 	bool compute() override;
@@ -163,14 +163,18 @@ public:
 
 	// results - available after compute() is called
 	PixelSet superPixels() const;
+	QVector<QSharedPointer<MserBlob>> mserBlobs() const;
 
 	cv::Mat draw(const cv::Mat& img) const;
+	cv::Mat drawMserBlobs(const cv::Mat& img, const QColor& col = QColor()) const;
 
 protected:
 	cv::Mat mSrcImg;
+	bool mStoreFeatures;
 
 	// results
 	PixelSet mSet;
+	QVector<QSharedPointer<MserBlob>> mMserBlobs;
 
 	bool checkInput() const override;
 };

@@ -115,6 +115,14 @@ std::vector<cv::Point> MserBlob::relativePts(const Vector2D & origin) const {
 	return rPts;
 }
 
+void MserBlob::setPyramidLevel(int level) {
+	mPyramidLevel = level;
+}
+
+int MserBlob::pyramidLevel() const {
+	return mPyramidLevel;
+}
+
 cv::Mat MserBlob::toBinaryMask() const {
 
 	cv::Mat img(bbox().size().toCvSize(), CV_8UC1, cv::Scalar(0));
@@ -145,6 +153,16 @@ double MserBlob::overlapArea(const Rect& r) const {
 	assert(width > 0 && height > 0);
 
 	return width * height;
+}
+
+void MserBlob::scale(double scaleFactor) {
+	mCenter.setX(mCenter.x() * scaleFactor);
+	mCenter.setY(mCenter.y() * scaleFactor);
+	mBBox.scale(scaleFactor);
+	for (auto& pt : mPts) {
+		pt.x = (int)round(pt.x * scaleFactor);
+		pt.y = (int)round(pt.y * scaleFactor);
+	}
 }
 
 void MserBlob::draw(QPainter & p) {

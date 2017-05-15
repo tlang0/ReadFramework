@@ -77,6 +77,9 @@ public:
 
 	std::vector<cv::Point> pts() const;
 	std::vector<cv::Point> relativePts(const Vector2D& origin) const;
+
+	void setPyramidLevel(int level);
+	int pyramidLevel() const;
 	
 	//double uniqueArea(const QVector<MserBlob>& blobs) const;
 	void draw(QPainter& p);
@@ -87,10 +90,13 @@ public:
 
 	double overlapArea(const Rect& r) const;
 
+	void scale(double scaleFactor);
+
 protected:
 	Vector2D mCenter;
 	Rect mBBox;
 	std::vector<cv::Point> mPts;
+	int mPyramidLevel;
 };
 
 /// <summary>
