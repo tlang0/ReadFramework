@@ -47,6 +47,7 @@
 
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/ml/ml.hpp>
+#include <opencv2/objdetect/objdetect.hpp>
 
 #pragma warning(disable: 4706)
 #include "GCGraph.hpp"
@@ -179,15 +180,42 @@ QString SuperPixelFeatureConfig::toString() const{
 	return ModuleConfig::toString();
 }
 
+void SuperPixelFeatureConfig::setFeatureType(SuperPixelFeatureType type) {
+	mFeatureType = type;
+}
+
+SuperPixelFeatureType SuperPixelFeatureConfig::featureType() const {
+	return mFeatureType;
+}
+
+void SuperPixelFeatureConfig::load(const QSettings & settings) {
+	QString featureTypeStr = settings.value("featureType").toString();
+	if (featureTypeStr == "orb") {
+		mFeatureType = SuperPixelFeatureType::orb;
+	}
+	else if (featureTypeStr == "hog") {
+		mFeatureType = SuperPixelFeatureType::hog;
+	}
+	else { // default
+		mFeatureType = SuperPixelFeatureType::orb;
+	}
+}
+
+void SuperPixelFeatureConfig::save(QSettings & settings) const {
+	QString featureTypeStr;
+	switch (mFeatureType) {
+	case SuperPixelFeatureType::orb: featureTypeStr = "orb"; break;
+	case SuperPixelFeatureType::hog: featureTypeStr = "hog"; break;
+	}
+	settings.setValue("featureType", featureTypeStr);
+}
+
 // SuperPixelFeature --------------------------------------------------------------------
 SuperPixelFeature::SuperPixelFeature(const cv::Mat & img, const PixelSet & set) {
 	mImg = img;
 	mSet = set;
 	mConfig = QSharedPointer<SuperPixelFeatureConfig>::create();
-	
-	// TODO: these settings are still generic...
-	//mConfig->loadSettings();
-	//mConfig->saveDefaultSettings();
+	mConfig->loadSettings();
 }
 
 bool SuperPixelFeature::isEmpty() const {
@@ -211,13 +239,30 @@ bool SuperPixelFeature::compute() {
 		keypoints.push_back(px->toKeyPoint());
 	}
 
-	mInfo << "# keypoints before ORB" << keypoints.size();
-
+	mInfo << "# keypoints before feature computation" << keypoints.size();
 
 	std::vector<cv::KeyPoint> kptsIn(keypoints.begin(), keypoints.end());
 
-	cv::Ptr<cv::ORB> features = cv::ORB::create();
-	features->compute(cImg, keypoints, mDescriptors);
+	if (config()->featureType() == SuperPixelFeatureType::orb) {
+		mInfo << "computing ORB features...";
+		cv::Ptr<cv::ORB> features = cv::ORB::create();
+		features->compute(cImg, keypoints, mDescriptors);
+	}
+	else if (config()->featureType() == SuperPixelFeatureType::hog) {
+		mInfo << "computing HOG features...";
+		cv::HOGDescriptor hog;
+		hog.winSize = hog.blockSize; // only 1 block per descriptor to keep the size down
+		std::vector<float> descriptors;
+		std::vector<cv::Point> locations;
+		locations.reserve(keypoints.size());
+		for (cv::KeyPoint kp : keypoints) {
+			locations.push_back(cv::Point((int)round(kp.pt.x), (int)round(kp.pt.y)));
+		}
+		hog.compute(cImg, descriptors, cv::Size(), cv::Size(), locations);
+		int descSize = (int)hog.getDescriptorSize();
+		mDescriptors = cv::Mat(descriptors, true);
+		mDescriptors = mDescriptors.reshape(0, (int)locations.size());
+	}
 
 	// remove SuperPixels that were removed during feature creation
 	syncSuperPixels(kptsIn, keypoints);

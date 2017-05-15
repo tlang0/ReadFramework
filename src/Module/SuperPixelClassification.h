@@ -51,6 +51,11 @@
 
 namespace rdf {
 
+enum class SuperPixelFeatureType {
+	orb,
+	hog
+};
+
 class DllCoreExport SuperPixelFeatureConfig : public ModuleConfig {
 
 public:
@@ -58,10 +63,14 @@ public:
 
 	virtual QString toString() const override;
 
-protected:
+	void setFeatureType(SuperPixelFeatureType type);
+	SuperPixelFeatureType featureType() const;
 
-	//void load(const QSettings& settings) override;
-	//void save(QSettings& settings) const override;
+protected:
+	SuperPixelFeatureType mFeatureType;
+
+	void load(const QSettings& settings) override;
+	void save(QSettings& settings) const override;
 };
 
 class DllCoreExport SuperPixelFeature : public Module {

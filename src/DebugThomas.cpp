@@ -128,6 +128,7 @@ void ThomasTest::testFeatureCollection() {
 	// compute features
 
 	SuperPixelFeature spf(img, spl.set());
+	spf.config()->setFeatureType(SuperPixelFeatureType::hog);
 	if (!spf.compute())
 		qCritical() << "could not compute SuperPixel features!";
 
